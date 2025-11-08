@@ -33,9 +33,4 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m scripts.predict --artifacts models/sarimax_artifacts.joblib --data dataset/test.csv --out results/sarimax_predictions.csv
 ```
 
-Important notes before publishing
-- The repository expects the dataset directory `dataset/` to contain `train.csv`, `store.csv`, and `test.csv`. The dataset is not included here. Provide instructions or a download link in a private/internal repo if the dataset is not public.
-- `requirements-frozen.txt` pins exact versions from a tested environment (created here). Use it to reproduce installs.
-- Add `sample_data/` if you want CI to run a full smoke test; otherwise CI must be configured to skip expensive steps.
-
 See `README_DEPLOY.md` for additional deploy/run instructions and `scripts/` for CLI helpers.
