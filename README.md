@@ -70,3 +70,24 @@ Notes & troubleshooting
 - If port 8050 is already in use, change the port in `app.py` (the `APP.run(..., port=XXXX)` call) and restart.
 
 See `README_DEPLOY.md` for additional deploy/run instructions and `scripts/` for CLI helpers.
+
+MLflow (optional)
+
+This project can optionally log training runs to MLflow. Install MLflow in your environment:
+
+```powershell
+python -m pip install mlflow
+```
+
+Then run training with MLflow enabled (example for LightGBM):
+
+```powershell
+python -m scripts.train --data-dir dataset --out models/lgbm_artifacts.joblib --model lgbm --mlflow --mlflow-experiment rossmann
+```
+
+The script will create an MLflow run, log parameters and RMSE, and upload the generated artifact (`.joblib`) to the run's artifacts. To view the MLflow UI locally run:
+
+```powershell
+mlflow ui
+# then open http://127.0.0.1:5000 in your browser
+```

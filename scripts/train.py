@@ -10,6 +10,9 @@ LightGBM (sklearn API) or a SARIMAX model (statsmodels) and persists artifacts w
 import argparse
 from pathlib import Path
 import joblib
+import json
+import tempfile
+import os
 
 import lightgbm as lgb
 from sklearn.model_selection import train_test_split
@@ -21,12 +24,40 @@ import statsmodels.api as sm
 from scripts.data_loader import load_raw, build_merged, get_feature_matrix
 
 
-def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_state: int = 42, model_type: str = "lgbm"):
+def _ensure_mlflow():
+    try:
+        import mlflow  # noqa: F401
+    except Exception as e:
+        raise RuntimeError("MLflow requested but not installed. Install with: pip install mlflow")
+
+
+def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_state: int = 42,
+                   model_type: str = "lgbm", use_mlflow: bool = False, mlflow_experiment: str = "rossmann"):
     data_dir = Path(data_dir)
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     train, store, _test = load_raw(data_dir)
+
+    def _run_mlflow_run(run_fn, params: dict, metrics: dict, artifacts: list):
+        """Helper to run an mlflow run and log params/metrics/artifacts."""
+        import mlflow
+        mlflow.set_experiment(mlflow_experiment)
+        with mlflow.start_run():
+            for k, v in params.items():
+                mlflow.log_param(k, v)
+            # execute training/eval logic provided by caller
+            run_fn()
+            for k, v in metrics.items():
+                try:
+                    mlflow.log_metric(k, float(v))
+                except Exception:
+                    pass
+            for a in artifacts:
+                try:
+                    mlflow.log_artifact(str(a))
+                except Exception:
+                    pass
 
     if model_type.lower() == "lgbm":
         merged = build_merged(train, store)
@@ -69,6 +100,54 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
         joblib.dump(artifacts, out_path)
         print(f"Saved LGBM model artifacts to {out_path}")
 
+        # Optionally log to MLflow
+        if use_mlflow:
+            _ensure_mlflow()
+            import mlflow
+            import mlflow.sklearn
+
+            # Prepare extra artifacts: scaler and feature_columns
+            temp_files = []
+            try:
+                if scaler is not None:
+                    scaler_path = Path(tempfile.mkstemp(suffix="_scaler.joblib")[1])
+                    joblib.dump(scaler, scaler_path)
+                    temp_files.append(scaler_path)
+                # write feature columns as json
+                if feature_columns is not None:
+                    feat_path = Path(tempfile.mkstemp(suffix="_feature_columns.json")[1])
+                    with open(feat_path, "w", encoding="utf-8") as f:
+                        json.dump(list(feature_columns), f)
+                    temp_files.append(feat_path)
+
+                def _train_fn():
+                    # log sklearn model and any other useful artifacts
+                    try:
+                        mlflow.sklearn.log_model(model, "model")
+                    except Exception as e:
+                        print("mlflow.sklearn.log_model failed:", e)
+
+                params = {
+                    "model_type": "lgbm",
+                    "num_leaves": getattr(model, "num_leaves", None),
+                    "learning_rate": getattr(model, "learning_rate", None),
+                    "n_estimators": getattr(model, "n_estimators", None),
+                    "random_state": random_state,
+                    "test_size": test_size,
+                }
+                metrics = {"rmse": rmse}
+
+                # artifacts to upload to mlflow: main joblib + any temp files created
+                mlflow_artifacts = [out_path] + temp_files
+                _run_mlflow_run(_train_fn, params, metrics, mlflow_artifacts)
+            finally:
+                # cleanup temp files
+                for tf in temp_files:
+                    try:
+                        os.unlink(tf)
+                    except Exception:
+                        pass
+
     elif model_type.lower() == "sarimax":
         # SARIMAX is trained on weekly-aggregated sales (matching the notebook)
         numeric_train = train.select_dtypes(include="number")
@@ -109,6 +188,28 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
         joblib.dump(artifacts, out_path)
         print(f"Saved SARIMAX artifacts to {out_path}")
 
+        # Optionally log to MLflow
+        if use_mlflow:
+            _ensure_mlflow()
+            import mlflow
+
+            def _train_fn():
+                # For SARIMAX we log the joblib artifact (results can't be auto-wrapped)
+                try:
+                    mlflow.log_artifact(str(out_path))
+                except Exception as e:
+                    print("mlflow.log_artifact failed:", e)
+
+            params = {
+                "model_type": "sarimax",
+                "order": str(order),
+                "seasonal_order": str(seasonal_order),
+                "random_state": random_state,
+                "test_size": test_size,
+            }
+            metrics = {"rmse": rmse}
+            _run_mlflow_run(_train_fn, params, metrics, [out_path])
+
     else:
         raise ValueError("Unsupported model_type. Choose 'lgbm' or 'sarimax'.")
 
@@ -120,9 +221,19 @@ def main():
     parser.add_argument("--test-size", type=float, default=0.2)
     parser.add_argument("--random-state", type=int, default=42)
     parser.add_argument("--model", default="lgbm", choices=["lgbm", "sarimax"], help="Model type to train")
+    parser.add_argument("--mlflow", action="store_true", help="Enable MLflow logging for this run")
+    parser.add_argument("--mlflow-experiment", default="rossmann", help="MLflow experiment name to use when logging")
     args = parser.parse_args()
 
-    train_and_save(args.data_dir, args.out, args.test_size, args.random_state, model_type=args.model)
+    train_and_save(
+        args.data_dir,
+        args.out,
+        args.test_size,
+        args.random_state,
+        model_type=args.model,
+        use_mlflow=args.mlflow,
+        mlflow_experiment=args.mlflow_experiment,
+    )
 
 
 if __name__ == "__main__":
