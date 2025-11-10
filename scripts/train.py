@@ -192,13 +192,36 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
         if use_mlflow:
             _ensure_mlflow()
             import mlflow
+            import mlflow.pyfunc
 
-            def _train_fn():
-                # For SARIMAX we log the joblib artifact (results can't be auto-wrapped)
-                try:
-                    mlflow.log_artifact(str(out_path))
-                except Exception as e:
-                    print("mlflow.log_artifact failed:", e)
+            # Try to log a pyfunc-wrapped SARIMAX model for uniform MLflow serving.
+            # This requires the `scripts.sarimax_pyfunc.SarimaxPyfuncModel` class to be importable.
+            try:
+                from scripts.sarimax_pyfunc import SarimaxPyfuncModel
+
+                def _train_fn():
+                    try:
+                        mlflow.pyfunc.log_model(
+                            artifact_path="model_pyfunc",
+                            python_model=SarimaxPyfuncModel(),
+                            artifacts={"sarimax_artifacts": str(out_path)},
+                        )
+                    except Exception as e:
+                        print("mlflow.pyfunc.log_model failed:", e)
+                        # fallback to logging the raw joblib artifact
+                        try:
+                            mlflow.log_artifact(str(out_path))
+                        except Exception as e2:
+                            print("mlflow.log_artifact failed:", e2)
+
+            except Exception as ex:
+                print("Failed to import SARIMAX pyfunc wrapper; falling back to artifact upload:", ex)
+
+                def _train_fn():
+                    try:
+                        mlflow.log_artifact(str(out_path))
+                    except Exception as e:
+                        print("mlflow.log_artifact failed:", e)
 
             params = {
                 "model_type": "sarimax",
