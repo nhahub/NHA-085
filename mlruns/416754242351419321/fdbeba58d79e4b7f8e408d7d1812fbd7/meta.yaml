@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/khogeta/Desktop/Graduation%20Project/NHA-085/mlruns/416754242351419321/fdbeba58d79e4b7f8e408d7d1812fbd7/artifacts
+end_time: 1763536955687
+entry_point_name: ''
+experiment_id: '416754242351419321'
+lifecycle_stage: active
+run_id: fdbeba58d79e4b7f8e408d7d1812fbd7
+run_name: nimble-hawk-994
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763536948627
+status: 3
+tags: []
+user_id: khogeta

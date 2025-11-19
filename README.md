@@ -4,34 +4,34 @@ This repository contains a Jupyter notebook (`Rossman_Sales_Forecasting with ML.
 
 Quick reproduction (Windows PowerShell)
 
-1. Create a Python virtual environment and install dependencies (recommended):
+1. Create a Python virtual environment and install dependencies (recommended)
 
-Open a terminal in the repository root (the folder that contains this `README.md`). Then run the commands below.
+Open a terminal in the repository root (the folder that contains this `README.md`). The examples below are explicit for Windows PowerShell and also show equivalent cross-platform notes.
+
+PowerShell (explicit venv + install):
 
 ```powershell
-# from the repository root
+# From the repository root
 python -m venv .venv
 
-# Windows PowerShell (activate the venv for this session)
-# If PowerShell blocks activation, run:
-# Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.venv\Scripts\Activate.ps1
+# Activate in PowerShell (if blocked run the Set-ExecutionPolicy line first)
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+. .venv\Scripts\Activate.ps1
 
-# Windows (cmd.exe)
-.venv\Scripts\activate.bat
-
-# macOS / Linux (bash/zsh)
-source .venv/bin/activate
-
-# upgrade pip and install dependencies
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+# upgrade pip and install dependencies using the venv python
+& ".venv\Scripts\python.exe" -m pip install --upgrade pip
+& ".venv\Scripts\python.exe" -m pip install -r requirements.txt
 ```
+
+Alternative activation methods
+
+- cmd.exe: `.venv\Scripts\activate.bat` then run `pip install -r requirements.txt`
+- macOS / Linux (bash/zsh): `python -m venv .venv; source .venv/bin/activate; python -m pip install -r requirements.txt`
 
 2. (Optional) For exact reproducibility install pinned versions:
 
 ```powershell
-.venv\Scripts\python.exe -m pip install -r requirements-frozen.txt
+& ".venv\Scripts\python.exe" -m pip install -r requirements-frozen.txt
 ```
 
 Running the Dash UI (predictions)
@@ -41,10 +41,11 @@ Running the Dash UI (predictions)
 2. Start the Dash app (from the repo root, venv activated):
 
 ```powershell
-# Preferred: use the venv python
-.venv\Scripts\python.exe app.py
-# Or on systems with python launcher available:
+# Start app using the venv python (preferred)
+& ".venv\Scripts\python.exe" app.py
 
+# If you prefer to activate the venv first, use the PowerShell activation shown above, then:
+# python app.py
 ```
 
 3. Open your browser at http://127.0.0.1:8050
@@ -73,21 +74,25 @@ See `README_DEPLOY.md` for additional deploy/run instructions and `scripts/` for
 
 MLflow (optional)
 
-This project can optionally log training runs to MLflow. Install MLflow in your environment:
+This project can optionally log training runs to MLflow. Install MLflow in your environment (using the venv python):
 
 ```powershell
-python -m pip install mlflow
+& ".venv\Scripts\python.exe" -m pip install mlflow
 ```
 
 Then run training with MLflow enabled (example for LightGBM):
 
 ```powershell
-python -m scripts.train --data-dir dataset --out models/lgbm_artifacts.joblib --model lgbm --mlflow --mlflow-experiment rossmann
+& ".venv\Scripts\python.exe" -m scripts.train --data-dir dataset --out models/lgbm_artifacts.joblib --model lgbm --mlflow --mlflow-experiment rossmann
 ```
 
-The script will create an MLflow run, log parameters and RMSE, and upload the generated artifact (`.joblib`) to the run's artifacts. To view the MLflow UI locally run:
+The script will create an MLflow run, log parameters and RMSE, and upload the generated artifact (`.joblib`) to the run's artifacts.
+
+Recommended: start MLflow UI with a sqlite backend (avoids the filesystem backend warning and persists runs across sessions):
 
 ```powershell
-mlflow ui
+& ".venv\Scripts\python.exe" -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 # then open http://127.0.0.1:5000 in your browser
 ```
+
+If you prefer the default filesystem store you can still run `mlflow ui`, but you may see a FutureWarning recommending a DB-backed store.

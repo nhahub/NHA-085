@@ -1,8 +1,10 @@
 import joblib
 import pandas as pd
 import numpy as np
+import mlflow.pyfunc
 
-class SarimaxPyfuncModel:
+
+class SarimaxPyfuncModel(mlflow.pyfunc.PythonModel):
     """Light wrapper implementing the mlflow.pyfunc PythonModel contract for SARIMAX results.
 
     This class is intentionally lightweight and only depends on joblib/pandas/numpy.

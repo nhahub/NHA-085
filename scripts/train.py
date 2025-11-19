@@ -9,6 +9,16 @@ LightGBM (sklearn API) or a SARIMAX model (statsmodels) and persists artifacts w
 
 import argparse
 from pathlib import Path
+import sys
+
+# Ensure repo root is on sys.path so `python scripts/train.py` (script mode)
+# can import sibling `scripts.*` modules. When executing a file directly,
+# Python sets sys.path[0] to the `scripts/` directory which prevents
+# `import scripts.data_loader` from resolving. Insert repo root at front.
+_THIS_FILE = Path(__file__).resolve()
+_REPO_ROOT = _THIS_FILE.parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 import joblib
 import json
 import tempfile
@@ -78,13 +88,31 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
             random_state=random_state,
         )
 
-        model.fit(
-            X_train,
-            y_train,
-            eval_set=[(X_val, y_val)],
-            early_stopping_rounds=100,
-            verbose=100,
-        )
+        # Fit model robustly across different LightGBM versions.
+        fit_succeeded = False
+        fit_errors = []
+        # Try common fit signatures in order of preference
+        fit_attempts = [
+            lambda: model.fit(X_train, y_train, eval_set=[(X_val, y_val)], early_stopping_rounds=100, verbose=100),
+            lambda: model.fit(X_train, y_train, eval_set=[(X_val, y_val)], callbacks=[lgb.early_stopping(100), lgb.log_evaluation(100)]),
+            lambda: model.fit(X_train, y_train),
+        ]
+
+        for attempt in fit_attempts:
+            try:
+                attempt()
+                fit_succeeded = True
+                break
+            except TypeError as te:
+                fit_errors.append(str(te))
+                continue
+            except Exception as e:
+                # For non-TypeErrors, record and continue to try fallbacks
+                fit_errors.append(str(e))
+                continue
+
+        if not fit_succeeded:
+            raise RuntimeError(f"All LGBM fit attempts failed. Errors: {fit_errors}")
 
         preds = model.predict(X_val, num_iteration=getattr(model, "best_iteration_", None))
         rmse = sqrt(mean_squared_error(y_val, preds))
@@ -121,11 +149,37 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
                     temp_files.append(feat_path)
 
                 def _train_fn():
-                    # log sklearn model and any other useful artifacts
+                    # Attempt to log the trained model into the MLflow run.
+                    # Try mlflow.sklearn.log_model first (works for sklearn-like objects),
+                    # then try mlflow.lightgbm.log_model for LightGBM native logging,
+                    # and finally fall back to uploading the joblib artifact.
+                    input_example = None
                     try:
-                        mlflow.sklearn.log_model(model, "model")
-                    except Exception as e:
-                        print("mlflow.sklearn.log_model failed:", e)
+                        # use a small sample of validation features as an input example
+                        input_example = X_val.iloc[:3]
+                    except Exception:
+                        input_example = None
+
+                    try:
+                        mlflow.sklearn.log_model(model, "model", input_example=input_example)
+                        print("mlflow.sklearn.log_model succeeded")
+                    except Exception as e1:
+                        print("mlflow.sklearn.log_model failed:", e1)
+                        try:
+                            # import via importlib to avoid rebinding the name `mlflow` in this local scope
+                            import importlib
+                            mlflow_lgb = importlib.import_module("mlflow.lightgbm")
+                            lg = getattr(model, "booster_", model)
+                            mlflow_lgb.log_model(lg, artifact_path="model")
+                            print("mlflow.lightgbm.log_model succeeded")
+                        except Exception as e2:
+                            print("mlflow.lightgbm.log_model failed:", e2)
+                            try:
+                                # fallback: upload the joblib artifact created by the script
+                                mlflow.log_artifact(str(out_path))
+                                print("Logged joblib artifact as fallback")
+                            except Exception as e3:
+                                print("Fallback mlflow.log_artifact failed:", e3)
 
                 params = {
                     "model_type": "lgbm",
