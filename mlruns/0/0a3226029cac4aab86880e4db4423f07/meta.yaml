@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/0a3226029cac4aab86880e4db4423f07/artifacts
+end_time: 1764087197380
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0a3226029cac4aab86880e4db4423f07
+run_name: blushing-steed-214
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764087192062
+status: 3
+tags: []
+user_id: khogeta

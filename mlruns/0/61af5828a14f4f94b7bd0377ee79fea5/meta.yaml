@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/61af5828a14f4f94b7bd0377ee79fea5/artifacts
+end_time: 1764095137973
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 61af5828a14f4f94b7bd0377ee79fea5
+run_name: bouncy-kit-788
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764095132600
+status: 3
+tags: []
+user_id: khogeta

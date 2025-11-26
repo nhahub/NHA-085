@@ -88,6 +88,15 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
             random_state=random_state,
         )
 
+        # Enable MLflow autologging for LightGBM so per-iteration metrics and training traces
+        # are captured when MLflow logging is enabled later in the run.
+        try:
+            import mlflow.lightgbm as _ml_lgb
+            _ml_lgb.autolog()
+        except Exception:
+            # If MLflow is not available or autolog not supported, fall back silently.
+            pass
+
         # Fit model robustly across different LightGBM versions.
         fit_succeeded = False
         fit_errors = []
@@ -160,8 +169,16 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
                     except Exception:
                         input_example = None
 
+                    # Log sklearn flavor with input example/signature where possible
+                    from mlflow.models.signature import infer_signature
                     try:
-                        mlflow.sklearn.log_model(model, "model", input_example=input_example)
+                        signature = None
+                        try:
+                            signature = infer_signature(X_val.iloc[:5], model.predict(X_val.iloc[:5]))
+                        except Exception:
+                            signature = None
+
+                        mlflow.sklearn.log_model(model, "model", input_example=input_example, signature=signature)
                         print("mlflow.sklearn.log_model succeeded")
                     except Exception as e1:
                         print("mlflow.sklearn.log_model failed:", e1)
@@ -180,6 +197,26 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
                                 print("Logged joblib artifact as fallback")
                             except Exception as e3:
                                 print("Fallback mlflow.log_artifact failed:", e3)
+
+                    # Attempt to also log a pyfunc that wraps the saved joblib artifact for consistent inference
+                    try:
+                        from scripts.lgbm_pyfunc import LgbmPyfuncModel
+                        # Infer input signature using X_val where possible
+                        try:
+                            signature = infer_signature(X_val.iloc[:5], model.predict(X_val.iloc[:5]))
+                        except Exception:
+                            signature = None
+
+                        mlflow.pyfunc.log_model(
+                            artifact_path="model_pyfunc",
+                            python_model=LgbmPyfuncModel(),
+                            artifacts={"lgb_artifacts": str(out_path)},
+                            signature=signature,
+                            input_example=input_example,
+                        )
+                        print("Logged LGBM as mlflow.pyfunc model (model_pyfunc)")
+                    except Exception as e:
+                        print("mlflow.pyfunc.log_model for LGBM failed:", e)
 
                 params = {
                     "model_type": "lgbm",

@@ -74,25 +74,83 @@ See `README_DEPLOY.md` for additional deploy/run instructions and `scripts/` for
 
 MLflow (optional)
 
-This project can optionally log training runs to MLflow. Install MLflow in your environment (using the venv python):
+This project supports MLflow for experiment tracking and model artifact storage. The code does two things:
+
+- When you train with `scripts.train --mlflow`, the training run will log params, validation RMSE and (where supported) training traces. For LightGBM we enable MLflow autologging so you also get iteration-level metrics and lineage.
+- There are helper scripts to retroactively log an existing joblib artifact as an MLflow model (`scripts/log_lgbmlflow.py`) and to inspect the artifacts in a given experiment (`scripts/list_mlflow_artifacts.py`).
+
+Install MLflow into your virtual environment:
 
 ```powershell
 & ".venv\Scripts\python.exe" -m pip install mlflow
 ```
 
-Then run training with MLflow enabled (example for LightGBM):
+Recommended local server (persist runs, avoid future filesystem-only warnings)
+1) Start MLflow **server** or **UI** backed by sqlite (recommended for local experiments):
 
 ```powershell
-& ".venv\Scripts\python.exe" -m scripts.train --data-dir dataset --out models/lgbm_artifacts.joblib --model lgbm --mlflow --mlflow-experiment rossmann
-```
+# Run the MLflow server (recommended).
+# Replace <REPO_ROOT> with the absolute path to this repository if you want a specific artifact root.
+& ".venv\Scripts\python.exe" -m mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root file:///%CD%/mlruns --host 127.0.0.1 --port 5000
 
-The script will create an MLflow run, log parameters and RMSE, and upload the generated artifact (`.joblib`) to the run's artifacts.
-
-Recommended: start MLflow UI with a sqlite backend (avoids the filesystem backend warning and persists runs across sessions):
-
-```powershell
+# OR (simpler) run the built-in UI which defaults to filesystem tracking:
 & ".venv\Scripts\python.exe" -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
-# then open http://127.0.0.1:5000 in your browser
+
+# Then open http://127.0.0.1:5000 in your browser
 ```
 
-If you prefer the default filesystem store you can still run `mlflow ui`, but you may see a FutureWarning recommending a DB-backed store.
+Important: if you start a dedicated MLflow server process (the `mlflow server` command above), set the tracking URI for training processes so autologging and artifact uploads write back to the running server (PowerShell example):
+
+```powershell
+$env:MLFLOW_TRACKING_URI = 'http://127.0.0.1:5000'
+```
+
+Training with MLflow enabled
+---------------------------
+Use `scripts.train` with `--mlflow` to run a training job that logs metrics + artifacts. Choose an experiment name via `--mlflow-experiment`.
+
+LightGBM (recommended path — autolog + pyfunc):
+
+```powershell
+& ".venv\Scripts\python.exe" -m scripts.train --data-dir dataset --out models/lgb_artifacts.joblib --model lgbm --mlflow --mlflow-experiment rossmann
+```
+
+SARIMAX (weekly-aggregated; will attempt to log a pyfunc wrapper):
+
+```powershell
+& ".venv\Scripts\python.exe" -m scripts.train --data-dir dataset --out models/sarimax_artifacts.joblib --model sarimax --mlflow --mlflow-experiment rossmann
+```
+
+Notes:
+- Training with LGBM logs hyperparameters, RMSE and (when MLflow is available) LightGBM autologging captures iteration-level metrics and lineage.
+- For LGBM the training logic will attempt to log both a native model flavor (sklearn/lightgbm) and a `pyfunc` wrapper so the model can be loaded consistently via `mlflow.pyfunc.load_model()`.
+- For SARIMAX the training flow logs a joblib artifact and attempts to register a pyfunc wrapper (`scripts.sarimax_pyfunc.SarimaxPyfuncModel`) under the run as `model_pyfunc`.
+
+Retroactive logging / helper scripts
+-----------------------------------
+If you already have a joblib artifact (e.g., `models/lgb_artifacts.joblib`) and want to create a proper MLflow run with a model artifact and AM-like metadata, use the helper:
+
+```powershell
+# Log an existing LGBM joblib artifact to MLflow and attempt to add a pyfunc model
+& ".venv\Scripts\python.exe" -m scripts.log_lgbmlflow models/lgb_artifacts.joblib --experiment rossmann
+
+# If you have a validation file (CSV) containing a `Sales` column, log and compute RMSE too:
+& ".venv\Scripts\python.exe" -m scripts.log_lgbmlflow models/lgb_artifacts.joblib --experiment rossmann --val-data dataset/test.csv
+```
+
+Inspect artifacts for an experiment (quick):
+
+```powershell
+& ".venv\Scripts\python.exe" -m scripts.list_mlflow_artifacts
+# By default the script scans the "rossmann" experiment. Edit the script or call it from Python if you want different experiment names.
+```
+
+Why we log pyfunc models
+------------------------
+Pyfunc wrappers (via `mlflow.pyfunc.log_model`) capture prediction-time behavior in a single object (preprocessing + model). This helps avoid the inference mismatches that can happen when model artifacts and preprocessing are stored separately (scaler mismatch, feature-order issues). Both `scripts.train` and `scripts/log_lgbmlflow.py` attempt to log a pyfunc `model_pyfunc` artifact when possible.
+
+Troubleshooting and tips
+------------------------
+- If autologging emits warnings about validating the input example, it means the sample use-case (input_example) does not match the model's expected feature vector; ensure the `input_example` you provide matches the model's `feature_columns` order and types.
+- If you see errors while autologging that mention artifact store/tracking URI differences, set `MLFLOW_TRACKING_URI` to the running server's URL (see above) so artifacts are uploaded correctly to the server.
+- For production use, consider using a remote artifact store (S3/Azure/GCS) and a database-backed tracking store for MLflow.

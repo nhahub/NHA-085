@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/4a4cadeab6dc4b7c95d5396106a1cf97/artifacts
+end_time: 1764164666051
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 4a4cadeab6dc4b7c95d5396106a1cf97
+run_name: glamorous-koi-745
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764164665837
+status: 4
+tags: []
+user_id: khogeta

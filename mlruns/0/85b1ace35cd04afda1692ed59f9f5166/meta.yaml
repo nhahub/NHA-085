@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/85b1ace35cd04afda1692ed59f9f5166/artifacts
+end_time: 1764081553673
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 85b1ace35cd04afda1692ed59f9f5166
+run_name: gaudy-donkey-793
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764081544023
+status: 3
+tags: []
+user_id: khogeta

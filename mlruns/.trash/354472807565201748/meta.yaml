@@ -1,0 +1,8 @@
+artifact_location: file:///C:/Users/khogeta/Desktop/Graduation%20Project/NHA-085/mlruns/354472807565201748
+creation_time: 1764080316928
+experiment_id: '354472807565201748'
+last_update_time: 1764081173283
+lifecycle_stage: deleted
+name: rossman
+tags:
+  mlflow.experimentKind: custom_model_development

@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/8a0e2942d3944e26afe5ec4f39faded9/artifacts
+end_time: 1764086012899
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8a0e2942d3944e26afe5ec4f39faded9
+run_name: skillful-carp-615
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764086007444
+status: 3
+tags: []
+user_id: khogeta

@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/af3244fc3f934292833f54104063d619/artifacts
+end_time: 1764086303050
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: af3244fc3f934292833f54104063d619
+run_name: flawless-mule-881
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764086293720
+status: 3
+tags: []
+user_id: khogeta

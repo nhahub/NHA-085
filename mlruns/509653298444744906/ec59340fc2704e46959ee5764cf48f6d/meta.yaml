@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/khogeta/Desktop/Graduation%20Project/NHA-085/mlruns/509653298444744906/ec59340fc2704e46959ee5764cf48f6d/artifacts
+end_time: 1764164862534
+entry_point_name: ''
+experiment_id: '509653298444744906'
+lifecycle_stage: active
+run_id: ec59340fc2704e46959ee5764cf48f6d
+run_name: abrasive-auk-710
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764164850377
+status: 3
+tags: []
+user_id: khogeta

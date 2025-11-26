@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/d4508ba6bf9b486aa7a2ab0bb5626845/artifacts
+end_time: 1764082541670
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: d4508ba6bf9b486aa7a2ab0bb5626845
+run_name: clumsy-conch-221
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764082536389
+status: 3
+tags: []
+user_id: khogeta

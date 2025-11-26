@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/khogeta/Desktop/Graduation%20Project/NHA-085/mlruns/416754242351419321/01c365ca1b72472ea68dde1eaa5502fd/artifacts
+deleted_time: 1764081173283
+end_time: 1763537111697
+entry_point_name: ''
+experiment_id: '416754242351419321'
+lifecycle_stage: deleted
+run_id: 01c365ca1b72472ea68dde1eaa5502fd
+run_name: crawling-smelt-338
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763537106706
+status: 3
+tags: []
+user_id: khogeta

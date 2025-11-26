@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/khogeta/Desktop/Graduation%20Project/NHA-085/mlruns/776225723359237361/cc6d68e9e8d54854a5a043703b7f0b12/artifacts
+end_time: 1764163475158
+entry_point_name: ''
+experiment_id: '776225723359237361'
+lifecycle_stage: active
+run_id: cc6d68e9e8d54854a5a043703b7f0b12
+run_name: orderly-vole-725
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764163463346
+status: 3
+tags: []
+user_id: khogeta

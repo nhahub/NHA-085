@@ -1,0 +1,34 @@
+digest: 4e79aebe
+name: dataset
+profile: '{"num_rows": 813767, "num_elements": 30109379}'
+schema: '{"mlflow_colspec": [{"type": "float", "name": "DayOfWeek", "required": true},
+  {"type": "long", "name": "Open", "required": true}, {"type": "long", "name": "Promo",
+  "required": true}, {"type": "long", "name": "SchoolHoliday", "required": true},
+  {"type": "float", "name": "CompetitionDistance", "required": true}, {"type": "float",
+  "name": "CompetitionOpenSinceMonth", "required": true}, {"type": "float", "name":
+  "CompetitionOpenSinceYear", "required": true}, {"type": "long", "name": "Promo2",
+  "required": true}, {"type": "float", "name": "Promo2SinceWeek", "required": true},
+  {"type": "float", "name": "Promo2SinceYear", "required": true}, {"type": "float",
+  "name": "Year", "required": true}, {"type": "float", "name": "Month", "required":
+  true}, {"type": "float", "name": "Day", "required": true}, {"type": "float", "name":
+  "WeekofYear", "required": true}, {"type": "long", "name": "Promo_Jan", "required":
+  true}, {"type": "long", "name": "Promo_Feb", "required": true}, {"type": "long",
+  "name": "Promo_Mar", "required": true}, {"type": "long", "name": "Promo_Apr", "required":
+  true}, {"type": "long", "name": "Promo_May", "required": true}, {"type": "long",
+  "name": "Promo_Jun", "required": true}, {"type": "long", "name": "Promo_Jul", "required":
+  true}, {"type": "long", "name": "Promo_Aug", "required": true}, {"type": "long",
+  "name": "Promo_Sept", "required": true}, {"type": "long", "name": "Promo_Oct", "required":
+  true}, {"type": "long", "name": "Promo_Nov", "required": true}, {"type": "long",
+  "name": "Promo_Dec", "required": true}, {"type": "boolean", "name": "StoreType_a",
+  "required": true}, {"type": "boolean", "name": "StoreType_b", "required": true},
+  {"type": "boolean", "name": "StoreType_c", "required": true}, {"type": "boolean",
+  "name": "StoreType_d", "required": true}, {"type": "boolean", "name": "Assortment_a",
+  "required": true}, {"type": "boolean", "name": "Assortment_b", "required": true},
+  {"type": "boolean", "name": "Assortment_c", "required": true}, {"type": "boolean",
+  "name": "StateHoliday_0", "required": true}, {"type": "boolean", "name": "StateHoliday_a",
+  "required": true}, {"type": "boolean", "name": "StateHoliday_b", "required": true},
+  {"type": "boolean", "name": "StateHoliday_c", "required": true}]}'
+source: '{"tags": {"mlflow.user": "khogeta", "mlflow.source.name": "C:\\Users\\khogeta\\Desktop\\Graduation
+  Project\\NHA-085\\scripts\\train.py", "mlflow.source.type": "LOCAL", "mlflow.source.git.commit":
+  "cf7e3dd44ee3837d155490994c30db7925908c27"}}'
+source_type: code

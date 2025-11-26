@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/9accbc0a5e99483bbc9812c4850be38c/artifacts
+end_time: 1764081567931
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 9accbc0a5e99483bbc9812c4850be38c
+run_name: gifted-mare-758
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764081562751
+status: 3
+tags: []
+user_id: khogeta

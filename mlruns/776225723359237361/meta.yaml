@@ -1,0 +1,6 @@
+artifact_location: file:///C:/Users/khogeta/Desktop/Graduation%20Project/NHA-085/mlruns/776225723359237361
+creation_time: 1764163462914
+experiment_id: '776225723359237361'
+last_update_time: 1764163462914
+lifecycle_stage: active
+name: rossmann_test_pyfunc
