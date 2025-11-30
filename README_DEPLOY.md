@@ -39,6 +39,12 @@ Notes / contract
 -- The notebook uses `Date` as an index, sentinel `CompetitionDistance=200000`, `PromoInterval` expansion, IterativeImputer and `pd.get_dummies(..., prefix=categorical_cols)`. The scripts mirror these choices to remain compatible.
 -- If you change sentinel values or encoding, update both notebook and scripts.
 
+MLflow/autolog note
+-------------------
+- The training script supports MLflow logging: pass `--mlflow` to enable a tracked MLflow run and additional artifact logging.
+- LightGBM autologging can create MLflow runs implicitly during model.fit; to avoid accidental runs when MLflow logging is not requested, the `train.py` script only enables LightGBM autolog when `--mlflow` is supplied.
+- SARIMAX/statsmodels autologging is handled the same way: if your MLflow installation supports statsmodels autolog it will only be enabled when `--mlflow` is supplied. This keeps command-line runs clean when you don't intend to use MLflow.
+
 Notes
 - Prefer invoking modules with `-m` (as shown) so the package import shim in `scripts/__init__.py` works correctly when running from the repo root.
 - If you want MLflow experiment tracking, see `README.md` for a recommended `mlflow ui` invocation that uses sqlite to persist runs.

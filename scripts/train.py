@@ -52,11 +52,50 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
     def _run_mlflow_run(run_fn, params: dict, metrics: dict, artifacts: list):
         """Helper to run an mlflow run and log params/metrics/artifacts."""
         import mlflow
-        mlflow.set_experiment(mlflow_experiment)
+        # Try to set the requested experiment. If the experiment has been deleted or
+        # is otherwise unavailable, try to restore or create a fresh experiment so
+        # the run does not fail due to a missing experiment resource.
+        try:
+            mlflow.set_experiment(mlflow_experiment)
+        except Exception as ex_set_exp:
+            try:
+                # Attempt to restore deleted experiment if possible, or create a new one
+                from mlflow.tracking import MlflowClient
+                client = MlflowClient()
+                exp = client.get_experiment_by_name(mlflow_experiment)
+                if exp is not None and getattr(exp, 'lifecycle_stage', None) == 'deleted' and hasattr(client, 'restore_experiment'):
+                    try:
+                        client.restore_experiment(exp.experiment_id)
+                        mlflow.set_experiment(mlflow_experiment)
+                    except Exception:
+                        # If restore fails, fall back to creating a new experiment name
+                        fallback_name = f"{mlflow_experiment}_auto"
+                        try:
+                            client.create_experiment(fallback_name)
+                            mlflow.set_experiment(fallback_name)
+                        except Exception:
+                            mlflow.set_experiment("default")
+                else:
+                    # Experiment doesn't exist or can't be restored. Create an experiment
+                    try:
+                        client.create_experiment(mlflow_experiment)
+                        mlflow.set_experiment(mlflow_experiment)
+                    except Exception:
+                        # Last resort: use default experiment
+                        mlflow.set_experiment("default")
+            except Exception:
+                # If anything goes wrong while handling experiments, fall back to default
+                try:
+                    mlflow.set_experiment("default")
+                except Exception:
+                    # If even default fails (very unusual), re-raise the original exception
+                    raise ex_set_exp
         with mlflow.start_run():
             for k, v in params.items():
                 mlflow.log_param(k, v)
-            # execute training/eval logic provided by caller
+            # execute training/eval logic provided by caller; if run_fn raises we'll
+            # let it propagate so the script logs the error and the caller can inspect
+            # stdout/stderr — we still ensured the MLflow experiment is available
             run_fn()
             for k, v in metrics.items():
                 try:
@@ -88,14 +127,16 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
             random_state=random_state,
         )
 
-        # Enable MLflow autologging for LightGBM so per-iteration metrics and training traces
-        # are captured when MLflow logging is enabled later in the run.
-        try:
-            import mlflow.lightgbm as _ml_lgb
-            _ml_lgb.autolog()
-        except Exception:
-            # If MLflow is not available or autolog not supported, fall back silently.
-            pass
+        # Only enable MLflow autologging for LightGBM if MLflow logging was requested
+        # (autolog creates run context during fit; enabling it unconditionally can create
+        # accidental runs which may end up marked as FAILED if an unrelated error occurs).
+        if use_mlflow:
+            try:
+                import mlflow.lightgbm as _ml_lgb
+                _ml_lgb.autolog()
+            except Exception:
+                # If MLflow is not available or autolog not supported, fall back silently.
+                pass
 
         # Fit model robustly across different LightGBM versions.
         fit_succeeded = False
@@ -259,6 +300,15 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
         seasonal_order = (1, 1, 1, 12)
 
         print("Fitting SARIMAX on weekly-aggregated sales...")
+        # Enable MLflow autologging for statsmodels SARIMAX if MLflow logging was requested
+        # (not all MLflow installs include a statsmodels autolog impl; this is best-effort)
+        if use_mlflow:
+            try:
+                import mlflow.statsmodels as _ml_stats
+                _ml_stats.autolog()
+            except Exception:
+                # If statsmodels autolog isn't available, continue without error
+                pass
         mod = sm.tsa.statespace.SARIMAX(train_series, order=order, seasonal_order=seasonal_order,
                                         enforce_stationarity=False, enforce_invertibility=False)
         results = mod.fit(disp=False)
@@ -291,11 +341,35 @@ def train_and_save(data_dir: str, out_path: str, test_size: float = 0.2, random_
                 from scripts.sarimax_pyfunc import SarimaxPyfuncModel
 
                 def _train_fn():
+                    # Attempt to log a pyfunc model for SARIMAX with input_example and
+                    # an inferred signature where possible (mirrors the LGBM logging flow).
                     try:
+                        input_example = None
+                        signature = None
+                        # Use a small sample from val_series if present to build an input example
+                        try:
+                            if val_series is not None and len(val_series) > 0:
+                                # For pyfunc SARIMAX the model expects a DataFrame placeholder
+                                # with a DatetimeIndex matching number of steps; create a small
+                                # DataFrame with 3 rows (or fewer) carrying the same index type
+                                sample_len = min(3, len(val_series))
+                                input_example = val_series.iloc[:sample_len].to_frame()
+                                # infer signature by using the forecast from the fitted results
+                                try:
+                                    sig_y = results.get_forecast(steps=len(input_example)).predicted_mean
+                                    from mlflow.models.signature import infer_signature
+                                    signature = infer_signature(input_example, sig_y)
+                                except Exception:
+                                    signature = None
+                        except Exception:
+                            input_example = None
+
                         mlflow.pyfunc.log_model(
                             artifact_path="model_pyfunc",
                             python_model=SarimaxPyfuncModel(),
                             artifacts={"sarimax_artifacts": str(out_path)},
+                            signature=signature,
+                            input_example=input_example,
                         )
                     except Exception as e:
                         print("mlflow.pyfunc.log_model failed:", e)

@@ -112,13 +112,13 @@ Use `scripts.train` with `--mlflow` to run a training job that logs metrics + ar
 LightGBM (recommended path — autolog + pyfunc):
 
 ```powershell
-& ".venv\Scripts\python.exe" -m scripts.train --data-dir dataset --out models/lgb_artifacts.joblib --model lgbm --mlflow --mlflow-experiment rossmann
+& ".venv\Scripts\python.exe" -m scripts.train --data-dir dataset --out models/lgb_artifacts.joblib --model lgbm --mlflow
 ```
 
 SARIMAX (weekly-aggregated; will attempt to log a pyfunc wrapper):
 
 ```powershell
-& ".venv\Scripts\python.exe" -m scripts.train --data-dir dataset --out models/sarimax_artifacts.joblib --model sarimax --mlflow --mlflow-experiment rossmann
+& ".venv\Scripts\python.exe" -m scripts.train --data-dir dataset --out models/sarimax_artifacts.joblib --model sarimax --mlflow
 ```
 
 Notes:
